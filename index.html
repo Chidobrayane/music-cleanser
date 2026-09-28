@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CleanCut</title>
+<style>
+:root{--bg:#111418;--card:#1b2027;--line:#2a313b;--tx:#e8ecf1;--mut:#8b96a5;--acc:#3ea6ff;--bad:#ff4d5e}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px system-ui,Segoe UI,sans-serif;display:flex;flex-direction:column}
+button,select,input{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer}
+button:hover{border-color:var(--acc)}button.on,button.pri{background:var(--acc);color:#04121f;border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,.w:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header,footer{display:flex;gap:10px;align-items:center;padding:12px 16px;background:#161a20;border-color:var(--line);flex-wrap:wrap}
+header{border-bottom:1px solid var(--line)}footer{border-top:1px solid var(--line)}
+h1{font-size:18px;margin:0 10px 0 0;color:var(--acc)}
+.seg{display:flex}.seg button{border-radius:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+main{flex:1;display:flex;min-height:0}
+aside{width:270px;border-right:1px solid var(--line);overflow:auto;padding:10px;flex:none}
+.f{padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px;background:var(--card);cursor:pointer;overflow-wrap:anywhere}
+.f.sel{border-color:var(--acc)}.f small{display:block;color:var(--mut);margin-top:3px}
+section{flex:1;padding:16px;overflow:auto;min-width:0}
+canvas{width:100%;height:130px;background:var(--card);border:1px solid var(--line);border-radius:8px;display:block;cursor:pointer}
+.bar{display:flex;gap:12px;align-items:center;margin:12px 0;color:var(--mut);flex-wrap:wrap}
+#pad{width:80px;padding:8px}
+#gain{width:120px;vertical-align:middle}#gainv{color:var(--tx);display:inline-block;width:38px}
+#tx{line-height:2.3;font-size:16px}
+.w{padding:3px 6px;border-radius:6px;cursor:pointer;margin:0 1px}.w:hover{background:var(--line)}
+.w.bad{background:var(--bad);color:#fff;font-weight:600}
+.hint{color:var(--mut);font-size:13px}
+#status{flex:1;color:var(--mut);min-width:200px}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;width:420px;max-width:92vw}
+dialog::backdrop{background:#000a}textarea{width:100%;height:320px;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:10px;font:14px monospace}
+@media (max-width:800px){
+  main{flex-direction:column}
+  aside{width:auto;max-height:170px;border-right:0;border-bottom:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>CleanCut</h1>
+  <button id="add" class="pri">＋ Add audio</button>
+  <input id="picker" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac,.wma,.opus" multiple hidden>
+  <input id="clipPicker" type="file" accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg,.aac,.wma,.opus" hidden>
+  <div class="seg" id="modes"><button data-m="beep" class="on">Beep</button><button data-m="silent">Silent</button><button data-m="hi">Hi</button></div>
+  <button id="clip" title="Choose your own 'hi' sound file, or keep the default high tone">Hi sound: high tone</button>
+  <button id="wl">Word list</button>
+  <select id="model" title="Bigger = more accurate but slower">
+    <option value="Xenova/whisper-base" selected>Model: Base (fast)</option>
+    <option value="Xenova/whisper-small">Model: Small (better)</option>
+    <option value="Xenova/whisper-tiny">Model: Tiny (fastest)</option>
+  </select>
+  <select id="lang"><option value="english" selected>Language: English / Pidgin</option><option value="auto">Language: Auto-detect</option><option value="afrikaans">Afrikaans</option><option value="albanian">Albanian</option><option value="amharic">Amharic</option><option value="arabic">Arabic</option><option value="armenian">Armenian</option><option value="assamese">Assamese</option><option value="azerbaijani">Azerbaijani</option><option value="bashkir">Bashkir</option><option value="basque">Basque</option><option value="belarusian">Belarusian</option><option value="bengali">Bengali</option><option value="bosnian">Bosnian</option><option value="breton">Breton</option><option value="bulgarian">Bulgarian</option><option value="catalan">Catalan</option><option value="chinese">Chinese</option><option value="croatian">Croatian</option><option value="czech">Czech</option><option value="danish">Danish</option><option value="dutch">Dutch</option><option value="estonian">Estonian</option><option value="faroese">Faroese</option><option value="finnish">Finnish</option><option value="french">French</option><option value="galician">Galician</option><option value="georgian">Georgian</option><option value="german">German</option><option value="greek">Greek</option><option value="gujarati">Gujarati</option><option value="haitian creole">Haitian Creole</option><option value="hausa">Hausa</option><option value="hawaiian">Hawaiian</option><option value="hebrew">Hebrew</option><option value="hindi">Hindi</option><option value="hungarian">Hungarian</option><option value="icelandic">Icelandic</option><option value="indonesian">Indonesian</option><option value="italian">Italian</option><option value="japanese">Japanese</option><option value="javanese">Javanese</option><option value="kannada">Kannada</option><option value="kazakh">Kazakh</option><option value="khmer">Khmer</option><option value="korean">Korean</option><option value="lao">Lao</option><option value="latin">Latin</option><option value="latvian">Latvian</option><option value="lingala">Lingala</option><option value="lithuanian">Lithuanian</option><option value="luxembourgish">Luxembourgish</option><option value="macedonian">Macedonian</option><option value="malagasy">Malagasy</option><option value="malay">Malay</option><option value="malayalam">Malayalam</option><option value="maltese">Maltese</option><option value="maori">Maori</option><option value="marathi">Marathi</option><option value="mongolian">Mongolian</option><option value="myanmar">Myanmar</option><option value="nepali">Nepali</option><option value="norwegian">Norwegian</option><option value="nynorsk">Nynorsk</option><option value="occitan">Occitan</option><option value="pashto">Pashto</option><option value="persian">Persian</option><option value="polish">Polish</option><option value="portuguese">Portuguese</option><option value="punjabi">Punjabi</option><option value="romanian">Romanian</option><option value="russian">Russian</option><option value="sanskrit">Sanskrit</option><option value="serbian">Serbian</option><option value="shona">Shona</option><option value="sindhi">Sindhi</option><option value="sinhala">Sinhala</option><option value="slovak">Slovak</option><option value="slovenian">Slovenian</option><option value="somali">Somali</option><option value="spanish">Spanish</option><option value="sundanese">Sundanese</option><option value="swahili">Swahili</option><option value="swedish">Swedish</option><option value="tagalog">Tagalog</option><option value="tajik">Tajik</option><option value="tamil">Tamil</option><option value="tatar">Tatar</option><option value="telugu">Telugu</option><option value="thai">Thai</option><option value="tibetan">Tibetan</option><option value="turkish">Turkish</option><option value="turkmen">Turkmen</option><option value="ukrainian">Ukrainian</option><option value="urdu">Urdu</option><option value="uzbek">Uzbek</option><option value="vietnamese">Vietnamese</option><option value="welsh">Welsh</option><option value="yiddish">Yiddish</option><option value="yoruba">Yoruba</option></select>
+</header>
+<main>
+  <aside id="files"><p class="hint">Add audio files to begin. They are transcribed one by one, in your browser. Nothing is uploaded.</p></aside>
+  <section>
+    <canvas id="wave"></canvas>
+    <div class="bar"><button id="play">▶ Play</button><span id="time">0:00 / 0:00</span><label>Padding (ms) <input id="pad" type="number" value="60" min="0" max="500"></label><label>Beep/Hi volume <input id="gain" type="range" min="0" max="100" value="50"><span id="gainv">50%</span></label><span id="count"></span></div>
+    <p class="hint">Red words will be censored. Click a word to flag or unflag it. Double-click a word to hear it. Click the waveform to seek.</p>
+    <div id="tx"></div>
+  </section>
+</main>
+<footer>
+  <span id="status">Ready.</span>
+  <button id="dir">Output: downloads folder</button>
+  <select id="fmt"><option value="same">Format: same as source</option><option value="mp3">MP3</option><option value="wav">WAV</option></select>
+  <button id="exp" class="pri">Export this file</button>
+  <button id="expAll" class="pri">Export all</button>
+</footer>
+<dialog id="wlg">
+  <p><b>Word list</b><br><span class="hint">One word per line. End with * to catch variants (fuck* catches fucking, fucked...).</span></p>
+  <textarea id="wlt"></textarea>
+  <p style="text-align:right"><button id="wlc">Cancel</button> <button id="wls" class="pri">Save &amp; re-scan</button></p>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+/* ---------- default word list (from words.json) ---------- */
+const DEFAULT_WORDS = ["fuck*","fucking","shit*","bullshit","bitch*","asshole*","bastard*","dick","dickhead","pussy","cunt*","whore*","slut*","motherfucker*","wanker*","prick","bollocks","piss","crap","damn","goddamn","nigga*","nigger*","retard*","ashawo","ashewo","oloshi","olosho","agbaya","oloriburuku","olofofo","mumu","yeye","karuwa","banza","kwaila"];
+const WORDS_KEY = 'cleancut.words';
+const getWords = () => { try { const v = JSON.parse(localStorage.getItem(WORDS_KEY)); if (Array.isArray(v)) return v; } catch (_) {} return DEFAULT_WORDS.slice(); };
+const setWords = list => { try { localStorage.setItem(WORDS_KEY, JSON.stringify(list)); } catch (_) {} };
+
+/* ---------- speech recognition worker (Whisper via transformers.js) ---------- */
+const TF_URL = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
+function workerMain() {
+  let T, asr, key;
+  const status = m => postMessage({ t: 'status', m });
+  onmessage = async e => {
+    const d = e.data;
+    try {
+      if (!T) T = await import(TF_URL);
+      if (!asr || key !== d.model) {
+        status(`Loading ${d.model} (first run downloads it once, then your browser keeps it)...`);
+        asr = await T.pipeline('automatic-speech-recognition', d.model, {
+          progress_callback: p => { if (p.status === 'progress') status(`Downloading model: ${Math.round(p.progress)}%`); }
+        });
+        key = d.model;
+      }
+      const opts = { return_timestamps: 'word', chunk_length_s: 30, stride_length_s: 5, task: 'transcribe' };
+      if (d.language && d.language !== 'auto') opts.language = d.language;
+      const o = await asr(d.audio, opts);
+      postMessage({ t: 'done', id: d.id, chunks: (o.chunks || []).map(c => ({ text: c.text, ts: c.timestamp })) });
+    } catch (err) {
+      postMessage({ t: 'error', id: d.id, m: String((err && err.message) || err) });
+    }
+  };
+}
+let worker, jobId = 0; const jobs = new Map();
+function getWorker() {
+  if (worker) return worker;
+  const src = `const TF_URL=${JSON.stringify(TF_URL)};(${workerMain.toString()})()`;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));   // classic worker: also starts when the page is opened from a file
+  worker.onmessage = e => {
+    const d = e.data;
+    if (d.t === 'status') return setStatus(d.m);
+    const j = jobs.get(d.id); if (!j) return; jobs.delete(d.id);
+    d.t === 'done' ? j.res(d.chunks) : j.rej(new Error(d.m));
+  };
+  worker.onerror = e => { const m = e.message || 'Speech engine failed to start'; jobs.forEach(j => j.rej(new Error(m))); jobs.clear(); worker = null; };
+  return worker;
+}
+const transcribe = (audio, model, language) => new Promise((res, rej) => {
+  const id = ++jobId; jobs.set(id, { res, rej });
+  getWorker().postMessage({ id, audio, model, language }, [audio.buffer]);
+});
+
+/* ---------- audio helpers ---------- */
+const $ = s => document.querySelector(s);
+const setStatus = m => ($('#status').textContent = m);
+let actx;
+const decode = async file => { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); return actx.decodeAudioData(await file.arrayBuffer()); };
+async function resample(buf, ch, rate) {
+  const off = new OfflineAudioContext(ch, Math.max(1, Math.ceil(buf.duration * rate)), rate);
+  const s = off.createBufferSource(); s.buffer = buf; s.connect(off.destination); s.start();
+  return off.startRendering();
+}
+
+/* ---------- streaming audio readers (no length limit) ---------- */
+const MB_URL = 'https://cdn.jsdelivr.net/npm/mediabunny@1/+esm';
+let MB;
+/* PURE-START */
+function merge(segs, maxT = Infinity) {
+  const a = segs.map(([s, e]) => [Math.max(0, s), Math.min(maxT, Math.max(0, e))]).filter(([s, e]) => e > s).sort((x, y) => x[0] - y[0]);
+  const o = [];
+  for (const s of a) {
+    const l = o[o.length - 1];
+    if (l && s[0] <= l[1] + 0.02) l[1] = Math.max(l[1], s[1]); else o.push([s[0], s[1]]);
+  }
+  return o;
+}
+const i16 = x => { const v = Math.max(-1, Math.min(1, x)); return v < 0 ? v * 32768 : v * 32767; };
+
+// Take source samples (L,R at srcRate, first sample at time srcStart) and return exactly [t0,t1) at `rate`.
+async function sliceAndResample(L, R, srcRate, srcStart, t0, t1, rate) {
+  let oL = L, oR = R;
+  if (srcRate !== rate) {
+    const ab = new AudioBuffer({ length: L.length, numberOfChannels: 2, sampleRate: srcRate });
+    ab.copyToChannel(L, 0); ab.copyToChannel(R, 1);
+    const r = await resample(ab, 2, rate);
+    oL = r.getChannelData(0); oR = r.getChannelData(1);
+  }
+  const n = Math.round((t1 - t0) * rate), st = Math.round((t0 - srcStart) * rate);
+  const outL = new Float32Array(n), outR = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const j = st + i; if (j >= 0 && j < oL.length) { outL[i] = oL[j]; outR[i] = oR[j]; } }
+  return { L: outL, R: outR };
+}
+
+function makeSegs(segsIn, dur, SR, N) {
+  return merge(segsIn, dur).map(([s, e]) => { const i0 = Math.floor(s * SR); return { i0, n: Math.min(N, Math.ceil(e * SR)) - i0 }; }).filter(x => x.n > 0);
+}
+// c0 = global index of L[0]; segments are in global sample coordinates so seams between chunks are seamless.
+function applyCensor(L, R, c0, segs, mode, cl, gain, SR) {
+  const c1 = c0 + L.length, freq = mode === 'hi' ? 2000 : 1000;
+  for (const { i0, n } of segs) {
+    const lo = Math.max(i0, c0), hi = Math.min(i0 + n, c1);
+    if (hi <= lo) continue;
+    const fade = Math.min(Math.round(0.01 * SR), Math.floor(n / 2)) || 1;
+    for (let g = lo; g < hi; g++) {
+      const k = g - i0; let vl = 0, vr = 0;
+      if (mode !== 'silent') {
+        const env = Math.min(1, k / fade, (n - 1 - k) / fade);
+        if (cl) { if (k < cl[0].length) { vl = cl[0][k] * gain * env; vr = cl[1][k] * gain * env; } }
+        else vl = vr = Math.sin(2 * Math.PI * freq * k / SR) * gain * env;
+      }
+      L[g - c0] = vl; R[g - c0] = vr;
+    }
+  }
+}
+async function runExport(rd, N, SR, segs, mode, cl, gain, sink, progress, CH = 60 * SR) {
+  for (let c0 = 0; c0 < N; c0 += CH) {
+    const c1 = Math.min(N, c0 + CH);
+    const { L, R } = await rd.read(c0 / SR, c1 / SR, SR);
+    applyCensor(L, R, c0, segs, mode, cl, gain, SR);
+    await sink.write(L, R);
+    if (progress) progress(c1 / N);
+    await new Promise(z => setTimeout(z));
+  }
+}
+function wavHeader(N, SR) {
+  if (N * 4 + 36 > 0xFFFFFFFF) throw new Error('WAV cannot hold more than about 6 hours. Choose MP3 for this file.');
+  const b = new ArrayBuffer(44), v = new DataView(b);
+  const w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + N * 4, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 2, true);
+  v.setUint32(24, SR, true); v.setUint32(28, SR * 4, true); v.setUint16(32, 4, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, N * 4, true);
+  return new Uint8Array(b);
+}
+/* PURE-END */
+
+// Streaming reader: decodes only the part asked for, so memory stays small however long the file is.
+async function streamReader(file) {
+  MB = MB || await import(MB_URL);
+  const input = new MB.Input({ source: new MB.BlobSource(file), formats: MB.ALL_FORMATS });
+  const track = await input.getPrimaryAudioTrack();
+  if (!track) throw new Error('no audio track');
+  if (!(await track.canDecode())) throw new Error('codec not supported by this browser');
+  const duration = await input.computeDuration();
+  if (!isFinite(duration) || duration <= 0) throw new Error('unknown duration');
+  const sink = new MB.AudioBufferSink(track);
+  return {
+    kind: 'stream', duration,
+    async read(t0, t1, rate) {
+      const m = 0.25, a = Math.max(0, t0 - m), b = Math.min(duration, t1 + m);
+      const bufs = []; let first = null;
+      for await (const wb of sink.buffers(a, b)) { if (first === null) first = wb.timestamp; bufs.push(wb.buffer); }
+      if (!bufs.length) { const n = Math.round((t1 - t0) * rate); return { L: new Float32Array(n), R: new Float32Array(n) }; }
+      let tot = 0; for (const x of bufs) tot += x.length;
+      const L = new Float32Array(tot), R = new Float32Array(tot); let o = 0;
+      for (const x of bufs) { const c0 = x.getChannelData(0), c1 = x.numberOfChannels > 1 ? x.getChannelData(1) : c0; L.set(c0, o); R.set(c1, o); o += x.length; }
+      return sliceAndResample(L, R, bufs[0].sampleRate, first, t0, t1, rate);
+    }
+  };
+}
+// Fallback: decodes the whole file at once (memory-limited), still read in pieces.
+async function fullReader(file) {
+  const buf = await decode(file), sr = buf.sampleRate;
+  const c0 = buf.getChannelData(0), c1 = buf.numberOfChannels > 1 ? buf.getChannelData(1) : c0;
+  return {
+    kind: 'full', duration: buf.duration,
+    async read(t0, t1, rate) {
+      const m = 0.25, i0 = Math.max(0, Math.round((t0 - m) * sr)), i1 = Math.min(c0.length, Math.round((t1 + m) * sr));
+      return sliceAndResample(c0.subarray(i0, i1), c1.subarray(i0, i1), sr, i0 / sr, t0, t1, rate);
+    }
+  };
+}
+async function openReader(file) {
+  try {
+    const rd = await streamReader(file);
+    const t = await rd.read(0, Math.min(1, rd.duration), 16000);   // sanity check that decoding really works
+    if (!t.L.length) throw new Error('empty decode');
+    return rd;
+  } catch (e) {
+    console.warn('Streaming decoder unavailable, using whole-file decode:', e);
+    setStatus('Streaming decoder unavailable for this file. Using whole-file decoding, so very long files may run out of memory.');
+    return fullReader(file);
+  }
+}
+
+async function makeSink(ext, N, SR, name) {
+  let w = null; const parts = [];
+  if (outDir) w = await (await outDir.getFileHandle(name, { create: true })).createWritable();
+  const put = async u8 => { if (w) await w.write(u8); else parts.push(u8); };
+  if (ext === 'wav') await put(wavHeader(N, SR));
+  const enc = ext === 'mp3' ? new lamejs.Mp3Encoder(2, SR, 192) : null;
+  return {
+    async write(L, R) {
+      if (ext === 'wav') {
+        const b = new Int16Array(L.length * 2);
+        for (let i = 0; i < L.length; i++) { b[2 * i] = i16(L[i]); b[2 * i + 1] = i16(R[i]); }
+        await put(new Uint8Array(b.buffer));
+      } else {
+        const BLK = 1152, l = new Int16Array(BLK), r = new Int16Array(BLK);
+        for (let i = 0; i < L.length; i += BLK) {
+          const m = Math.min(BLK, L.length - i);
+          for (let k = 0; k < m; k++) { l[k] = i16(L[i + k]); r[k] = i16(R[i + k]); }
+          const out = enc.encodeBuffer(m === BLK ? l : l.subarray(0, m), m === BLK ? r : r.subarray(0, m));
+          if (out.length) await put(new Uint8Array(out));
+        }
+      }
+    },
+    async close() {
+      if (enc) { const end = enc.flush(); if (end.length) await put(new Uint8Array(end)); }
+      if (w) { await w.close(); return null; }
+      return new Blob(parts, { type: ext === 'wav' ? 'audio/wav' : 'audio/mpeg' });
+    }
+  };
+}
+
+/* ---------- state ---------- */
+let files = [], cur = -1, mode = 'beep', clipFile = null, outDir = null, wl = { exact: new Set(), pre: [] };
+const audio = new Audio(); let stopAt = null;
+const norm = w => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');
+function compile(list) {
+  wl = { exact: new Set(), pre: [] };
+  for (const x of list) { const t = x.trim().toLowerCase(); if (!t) continue; t.endsWith('*') ? wl.pre.push(t.slice(0, -1)) : wl.exact.add(t); }
+}
+const isBad = w => { const n = norm(w); return !!n && (wl.exact.has(n) || wl.pre.some(p => n.startsWith(p))); };
+const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const F = () => files[cur];
+compile(getWords());
+function rescan(f) { f.flags = new Set(); f.words.forEach((x, i) => { if (isBad(x.w)) f.flags.add(i); }); }
+
+/* ---------- add files + transcription queue ---------- */
+$('#add').onclick = () => $('#picker').click();
+$('#picker').onchange = e => {
+  for (const file of e.target.files) if (!files.some(f => f.file.name === file.name && f.file.size === file.size)) files.push({ file, name: file.name, st: 'queued' });
+  e.target.value = '';
+  renderList();
+  if (cur < 0 && files.length) select(0);
+  runQueue();
+};
+
+async function analyze(f) {
+  setStatus(`Reading ${f.name}...`);
+  const rd = await openReader(f.file), dur = rd.duration, note = rd.kind === 'full' ? ' (streaming unavailable, decoding the whole file: very long files may run out of memory)' : '';
+  const RATE = 16000, B = 1400, step = Math.max(1, Math.floor(dur * RATE / B)), peaks = new Array(B).fill(0);
+  const CH = 300, OV = 4, parts = Math.max(1, Math.ceil(dur / CH)), words = [];
+  for (let i = 0; i < parts; i++) {
+    const a = i * CH, own1 = Math.min(dur, a + CH), r0 = Math.max(0, a - OV), r1 = Math.min(dur, own1 + OV);
+    setStatus(`Reading ${f.name} (part ${i + 1} of ${parts})...${note}`);
+    const { L, R } = await rd.read(r0, r1, RATE);
+    const mono = new Float32Array(L.length);
+    for (let k = 0; k < mono.length; k++) mono[k] = (L[k] + R[k]) / 2;
+    const k0 = Math.round((a - r0) * RATE), k1 = Math.min(mono.length, Math.round((own1 - r0) * RATE)), g0 = Math.round(a * RATE);
+    for (let k = k0; k < k1; k++) { const bin = Math.min(B - 1, Math.floor((g0 + k - k0) / step)), v = Math.abs(mono[k]); if (v > peaks[bin]) peaks[bin] = v; }
+    if (mono.length < RATE / 2) continue;
+    setStatus(`Transcribing ${f.name}: part ${i + 1} of ${parts}...${note}`);
+    const chunks = await transcribe(mono, $('#model').value, $('#lang').value);
+    for (const c of chunks) {
+      const txt = c.text.trim(); if (!txt || c.ts[0] == null) continue;
+      const s = c.ts[0] + r0, e = (c.ts[1] ?? c.ts[0] + 0.4) + r0;
+      if (s >= a - 1e-6 && (i === parts - 1 || s < own1)) words.push({ w: txt, s, e });
+    }
+  }
+  setStatus('Done.');
+  return { words, peaks, duration: dur, url: URL.createObjectURL(f.file) };
+}
+
+let busy = false;
+async function runQueue() {
+  if (busy) return; busy = true;
+  for (const f of files) {
+    if (f.st !== 'queued') continue;
+    f.st = 'working'; renderList();
+    try { Object.assign(f, await analyze(f)); rescan(f); f.st = 'ready'; }
+    catch (e) { f.st = 'error'; f.err = e.message; setStatus('Error: ' + e.message); }
+    renderList();
+    if (F() === f) select(cur);
+  }
+  busy = false;
+}
+
+function renderList() {
+  const el = $('#files'); el.innerHTML = '';
+  files.forEach((f, i) => {
+    const d = document.createElement('div');
+    d.className = 'f' + (i === cur ? ' sel' : '');
+    const info = f.st === 'ready' ? `${f.flags.size} word(s) flagged` : f.st === 'working' ? 'Transcribing...' : f.st === 'queued' ? 'Waiting...' : 'Failed';
+    d.innerHTML = `<b></b><small>${info}</small>`; d.firstChild.textContent = f.name;
+    d.onclick = () => select(i); el.appendChild(d);
+  });
+}
+function select(i) {
+  cur = i; renderList(); const f = F();
+  audio.pause(); $('#play').textContent = '▶ Play';
+  if (f && f.st === 'ready') audio.src = f.url;
+  showText(); draw();
+}
+function showText() {
+  const f = F(), tx = $('#tx'); tx.innerHTML = '';
+  if (!f) return;
+  if (f.st !== 'ready') { tx.textContent = f.st === 'error' ? 'Could not process this file: ' + f.err : 'Transcribing... this can take a few minutes for long audio.'; $('#count').textContent = ''; return; }
+  f.words.forEach((x, i) => {
+    const s = document.createElement('span');
+    s.className = 'w' + (f.flags.has(i) ? ' bad' : ''); s.textContent = x.w + ' ';
+    s.onclick = () => { f.flags.has(i) ? f.flags.delete(i) : f.flags.add(i); s.classList.toggle('bad'); renderList(); draw(); count(); };
+    s.ondblclick = () => playRange(x.s - 0.5, x.e + 0.5);
+    tx.appendChild(s);
+  });
+  count();
+}
+const count = () => ($('#count').textContent = F() && F().flags ? `${F().flags.size} flagged` : '');
+
+/* ---------- playback + waveform ---------- */
+function playRange(a, b) { audio.currentTime = Math.max(0, a); stopAt = b; audio.play(); $('#play').textContent = '❚❚ Pause'; }
+$('#play').onclick = () => { if (!F() || F().st !== 'ready') return; stopAt = null; if (audio.paused) { audio.play(); $('#play').textContent = '❚❚ Pause'; } else { audio.pause(); $('#play').textContent = '▶ Play'; } };
+audio.ontimeupdate = () => {
+  if (stopAt !== null && audio.currentTime >= stopAt) { audio.pause(); stopAt = null; $('#play').textContent = '▶ Play'; }
+  draw();
+};
+audio.onended = () => ($('#play').textContent = '▶ Play');
+const cv = $('#wave');
+function draw() {
+  const f = F(), w = cv.clientWidth, h = cv.clientHeight, r = devicePixelRatio || 1;
+  cv.width = w * r; cv.height = h * r; const g = cv.getContext('2d'); g.scale(r, r); g.clearRect(0, 0, w, h);
+  if (!f || f.st !== 'ready') { $('#time').textContent = '0:00 / 0:00'; return; }
+  g.fillStyle = '#3ea6ff88';
+  f.peaks.forEach((p, i) => { const x = i / f.peaks.length * w, bh = Math.max(1, p * h * 0.95); g.fillRect(x, (h - bh) / 2, Math.max(1, w / f.peaks.length), bh); });
+  g.fillStyle = '#ff4d5eaa';
+  f.flags.forEach(i => { const x = f.words[i]; g.fillRect(x.s / f.duration * w, 0, Math.max(3, (x.e - x.s) / f.duration * w), h); });
+  g.fillStyle = '#fff'; g.fillRect(audio.currentTime / f.duration * w, 0, 2, h);
+  $('#time').textContent = `${fmt(audio.currentTime)} / ${fmt(f.duration)}`;
+}
+cv.onclick = e => { const f = F(); if (!f || f.st !== 'ready') return; audio.currentTime = e.offsetX / cv.clientWidth * f.duration; draw(); };
+addEventListener('resize', draw);
+
+/* ---------- mode, hi sound, output folder, word list ---------- */
+$('#gain').oninput = () => ($('#gainv').textContent = $('#gain').value + '%');
+document.querySelectorAll('#modes button').forEach(b => (b.onclick = () => {
+  mode = b.dataset.m; document.querySelectorAll('#modes button').forEach(x => x.classList.toggle('on', x === b));
+}));
+$('#clip').onclick = () => {
+  if (clipFile) { clipFile = null; $('#clip').textContent = 'Hi sound: high tone'; return; }
+  $('#clipPicker').click();
+};
+$('#clipPicker').onchange = e => {
+  const p = e.target.files[0]; e.target.value = '';
+  if (p) { clipFile = p; $('#clip').textContent = 'Hi sound: ' + p.name + ' (click to reset)'; }
+};
+$('#dir').onclick = async () => {
+  if (!window.showDirectoryPicker) { setStatus('Your browser can\'t pick an output folder, so files go to your downloads folder. Chrome or Edge can choose a folder.'); return; }
+  try { outDir = await showDirectoryPicker({ mode: 'readwrite' }); $('#dir').textContent = 'Output: ' + outDir.name; } catch (_) {}
+};
+$('#wl').onclick = () => { $('#wlt').value = getWords().join('\n'); $('#wlg').showModal(); };
+$('#wlc').onclick = () => $('#wlg').close();
+$('#wls').onclick = () => {
+  const list = $('#wlt').value.split('\n').map(x => x.trim()).filter(Boolean);
+  setWords(list); compile(list);
+  files.forEach(f => f.st === 'ready' && rescan(f));
+  $('#wlg').close(); renderList(); showText(); draw();
+};
+
+/* ---------- export ---------- */
+function outExt(f) {
+  const sel = $('#fmt').value; if (sel !== 'same') return sel;
+  const e = f.name.split('.').pop().toLowerCase();
+  return (e === 'wav' || e === 'flac') ? 'wav' : 'mp3';
+}
+async function exportFile(f) {
+  const pad = (+$('#pad').value || 0) / 1000, gain = (+$('#gain').value || 0) / 100, ext = outExt(f), SR = 44100;
+  const name = `${f.name.replace(/\.[^.]+$/, '')}_clean.${ext}`;
+  setStatus(`Exporting ${name}...`);
+  const rd = await openReader(f.file), dur = rd.duration, N = Math.round(dur * SR), note = rd.kind === 'full' ? ' (streaming unavailable, decoding the whole file)' : '';
+  const segs = makeSegs([...f.flags].map(i => [f.words[i].s - pad, f.words[i].e + pad]), dur, SR, N);
+  let cl = null;
+  if (mode === 'hi' && clipFile) { const c = await resample(await decode(clipFile), 2, SR); cl = [c.getChannelData(0), c.getChannelData(1)]; }
+  const sink = await makeSink(ext, N, SR, name);
+  await runExport(rd, N, SR, segs, mode, cl, gain, sink, p => setStatus(`Exporting ${name}... ${Math.round(p * 100)}%${note}`));
+  const blob = await sink.close();
+  if (blob) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+  setStatus(`Saved ${name}`);
+  return name;
+}
+$('#exp').onclick = async () => {
+  const f = F(); if (!f || f.st !== 'ready') return;
+  try { await exportFile(f); } catch (e) { setStatus('Export failed: ' + e.message); }
+};
+$('#expAll').onclick = async () => {
+  let n = 0;
+  for (const f of files) if (f.st === 'ready') { try { await exportFile(f); n++; } catch (e) { setStatus(`Export failed (${f.name}): ${e.message}`); return; } }
+  if (n) setStatus(`Exported ${n} file(s).`);
+};
+</script>
+</body>
+</html>
